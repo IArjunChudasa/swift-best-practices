@@ -11,30 +11,30 @@ class UserViewModel {
         return users.count
     }
     
-    func fetchUsers() {
+    func fetchUsers(completion: @escaping ([User]?, Error?) -> Void) {
         guard let url = URL(string: "https://example.com/api/users") else { return }
         
         URLSessionHelper.shared.get(url) { [weak self] data, response, error in
-            guard let self = self else { return }
-            
             if let error = error {
-                print("Error fetching users: \(error.localizedDescription)")
+                completion(nil, error)
                 return
             }
             
             guard let data = data else {
-                print("No data received")
+                let noDataError = NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received"])
+                completion(nil, noDataError)
                 return
             }
             
             do {
                 let users = try JSONDecoder().decode([User].self, from: data)
-                self.users = users
+                self?.users = users
                 DispatchQueue.main.async {
-                    self.onUsersUpdated?()
+                    self?.onUsersUpdated?()
                 }
+                completion(users, nil)
             } catch {
-                print("Error decoding users: \(error.localizedDescription)")
+                completion(nil, error)
             }
         }
     }
