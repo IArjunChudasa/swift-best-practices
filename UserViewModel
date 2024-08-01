@@ -1,0 +1,46 @@
+import Foundation
+
+class UserViewModel {
+    
+    // MARK: - Properties
+    
+    private var users: [User] = []
+    var onUsersUpdated: (() -> Void)?
+    
+    var userCount: Int {
+        return users.count
+    }
+    
+    func fetchUsers() {
+        guard let url = URL(string: "https://example.com/api/users") else { return }
+        
+        URLSessionHelper.shared.get(url) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("Error fetching users: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = data else {
+                print("No data received")
+                return
+            }
+            
+            do {
+                let users = try JSONDecoder().decode([User].self, from: data)
+                self.users = users
+                DispatchQueue.main.async {
+                    self.onUsersUpdated?()
+                }
+            } catch {
+                print("Error decoding users: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func getUser(at index: Int) -> User? {
+        guard index >= 0 && index < users.count else { return nil }
+        return users[index]
+    }
+}
